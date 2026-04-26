@@ -92,6 +92,11 @@ export function createRun(options?: {
         totalEvents: seq,
         durationMs: Date.now() - startedAt,
       });
+      writeFileSync(
+        filePath.replace(/\.jsonl$/, '.head.json'),
+        JSON.stringify({ runId, seq: endEvent.seq, hash: endEvent.hash, endedAt: Date.now() }),
+        'utf8'
+      );
       return endEvent;
     },
   };

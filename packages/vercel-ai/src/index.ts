@@ -1,4 +1,4 @@
-import { createRun } from '@asafhaim/agentlog-core';
+import { createRun } from '@asafhm/agentlog-core';
 import type { TelemetryIntegration } from 'ai';
 
 export function createAgentLogger(config?: {
@@ -49,7 +49,13 @@ export function createAgentLogger(config?: {
       isEnabled: true,
       integrations: integration,
     },
-    onError(error: unknown) {
+    onError(errorOrEvent: unknown) {
+      const error =
+        errorOrEvent !== null &&
+        typeof errorOrEvent === 'object' &&
+        'error' in errorOrEvent
+          ? (errorOrEvent as { error: unknown }).error
+          : errorOrEvent;
       run.end('error', String(error));
     },
   };

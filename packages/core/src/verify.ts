@@ -1,4 +1,4 @@
-import { createReadStream } from 'node:fs';
+import { createReadStream, existsSync, readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { hashEvent, GENESIS } from './crypto.js';
 import type { AuditEvent } from './event.js';
@@ -57,6 +57,22 @@ export async function verifyFile(filePath: string): Promise<VerifyResult> {
       prevTs = event.ts;
       expectedSeq++;
       eventsChecked++;
+    }
+
+    const headPath = filePath.replace(/\.jsonl$/, '.head.json');
+    if (existsSync(headPath)) {
+      try {
+        const head = JSON.parse(readFileSync(headPath, 'utf8')) as {
+          seq: number;
+          hash: string;
+        };
+        const lastSeq = expectedSeq - 1;
+        if (head.seq !== lastSeq || head.hash !== prevHash) {
+          return { valid: false, eventsChecked, error: 'Tail anchor mismatch' };
+        }
+      } catch {
+        return { valid: false, eventsChecked, error: 'Tail anchor unreadable' };
+      }
     }
 
     return { valid: true, eventsChecked };

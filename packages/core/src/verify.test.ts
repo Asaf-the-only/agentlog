@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { describe, it, expect, afterEach } from 'vitest';
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { verifyFile } from './verify.js';
 import { hashEvent, GENESIS } from './crypto.js';
+import { createRun } from './run.js';
 import type { AuditEvent, AuditEventType } from './event.js';
 
 function makeEvent(
@@ -43,6 +44,22 @@ function writeTmp(events: AuditEvent[]): string {
   writeFileSync(path, events.map(e => JSON.stringify(e)).join('\n') + '\n');
   return path;
 }
+
+function writeTmpWithHead(events: AuditEvent[]): string {
+  const path = writeTmp(events);
+  const last = events[events.length - 1];
+  writeFileSync(
+    path.replace(/\.jsonl$/, '.head.json'),
+    JSON.stringify({ runId: last.runId, seq: last.seq, hash: last.hash, endedAt: Date.now() })
+  );
+  return path;
+}
+
+const savedAgentlogDir = process.env.AGENTLOG_DIR;
+afterEach(() => {
+  if (savedAgentlogDir === undefined) delete process.env.AGENTLOG_DIR;
+  else process.env.AGENTLOG_DIR = savedAgentlogDir;
+});
 
 describe('verifyFile', () => {
   it('valid chain passes', async () => {
@@ -87,5 +104,42 @@ describe('verifyFile', () => {
     const result = await verifyFile(path);
     expect(result.valid).toBe(false);
     expect(result.error).toMatch(/hash mismatch/i);
+  });
+
+  it('valid chain with matching head file passes', async () => {
+    const path = writeTmpWithHead(buildChain(['run_start', 'prompt', 'response', 'run_end']));
+    const result = await verifyFile(path);
+    expect(result.valid).toBe(true);
+  });
+
+  it('tail-truncated file with head file fails', async () => {
+    const events = buildChain(['run_start', 'prompt', 'response', 'run_end']);
+    const path = writeTmpWithHead(events);
+    // remove last event (run_end) — sidecar still points to it
+    const lines = readFileSync(path, 'utf8').trim().split('\n');
+    lines.pop();
+    writeFileSync(path, lines.join('\n') + '\n');
+
+    const result = await verifyFile(path);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('Tail anchor mismatch');
+  });
+
+  it('run.end() writes head file with correct seq and hash', async () => {
+    const dir = join(tmpdir(), randomUUID());
+    mkdirSync(dir, { recursive: true });
+    process.env.AGENTLOG_DIR = dir;
+
+    const run = createRun({ agentName: 'test' });
+    run.append('prompt', { model: 'test' });
+    const endEvt = run.end('success');
+
+    const headPath = join(dir, 'runs', `${run.runId}.head.json`);
+    expect(existsSync(headPath)).toBe(true);
+
+    const head = JSON.parse(readFileSync(headPath, 'utf8'));
+    expect(head.runId).toBe(run.runId);
+    expect(head.seq).toBe(endEvt.seq);
+    expect(head.hash).toBe(endEvt.hash);
   });
 });

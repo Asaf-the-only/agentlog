@@ -14,7 +14,7 @@ importers:
 
   apps/cli:
     dependencies:
-      '@asafhaim/agentlog-core':
+      '@asafhm/agentlog-core':
         specifier: workspace:*
         version: link:../../packages/core
     devDependencies:
@@ -27,10 +27,25 @@ importers:
       '@ai-sdk/openai':
         specifier: ^3.0.53
         version: 3.0.53(zod@4.3.6)
-      '@asafhaim/agentlog-core':
+      '@asafhm/agentlog-core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@asafhaim/agentlog-vercel-ai':
+      '@asafhm/agentlog-vercel-ai':
+        specifier: workspace:*
+        version: link:../../packages/vercel-ai
+      ai:
+        specifier: ^6.0.168
+        version: 6.0.168(zod@4.3.6)
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+
+  examples/vercel-stream-text:
+    dependencies:
+      '@ai-sdk/openai':
+        specifier: ^3.0.53
+        version: 3.0.53(zod@4.3.6)
+      '@asafhm/agentlog-vercel-ai':
         specifier: workspace:*
         version: link:../../packages/vercel-ai
       ai:
@@ -51,7 +66,7 @@ importers:
 
   packages/vercel-ai:
     dependencies:
-      '@asafhaim/agentlog-core':
+      '@asafhm/agentlog-core':
         specifier: workspace:*
         version: link:../core
       ai:

@@ -1,18 +1,13 @@
 {
-  "name": "vercel-generate-text",
+  "name": "vercel-stream-text",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "type": "module",
   "scripts": {
+    "start": "node --env-file=.env index.ts",
     "test": "echo \"no tests in example\""
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.33.2",
-  "type": "module",
   "dependencies": {
-    "@asafhm/agentlog-core": "workspace:*",
     "@asafhm/agentlog-vercel-ai": "workspace:*",
     "@ai-sdk/openai": "^3.0.53",
     "ai": "^6.0.168",

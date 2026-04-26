@@ -10,8 +10,8 @@ Every prompt, tool call, and response is written to a local JSONL file with a SH
 
 | Package | Description |
 |---|---|
-| `@asafhaim/agentlog-core` | Core logger — create runs, append events, verify files |
-| `@asafhaim/agentlog-vercel-ai` | Vercel AI SDK adapter for `generateText` |
+| `@asafhm/agentlog-core` | Core logger — create runs, append events, verify files |
+| `@asafhm/agentlog-vercel-ai` | Vercel AI SDK adapter for `generateText` |
 | `agentlog` | CLI — `verify` and `view` commands |
 
 ---
@@ -19,13 +19,13 @@ Every prompt, tool call, and response is written to a local JSONL file with a SH
 ## Install
 
 ```bash
-npm install @asafhaim/agentlog-core
+npm install @asafhm/agentlog-core
 ```
 
 With Vercel AI SDK:
 
 ```bash
-npm install @asafhaim/agentlog-core @asafhaim/agentlog-vercel-ai
+npm install @asafhm/agentlog-core @asafhm/agentlog-vercel-ai
 ```
 
 CLI (global):
@@ -41,7 +41,7 @@ npm install -g agentlog
 ### Core
 
 ```ts
-import { createRun, verifyFile } from '@asafhaim/agentlog-core';
+import { createRun, verifyFile } from '@asafhm/agentlog-core';
 
 const run = createRun({ agentName: 'my-agent' });
 
@@ -59,7 +59,7 @@ console.log(result); // { valid: true, eventsChecked: 5 }
 import { generateText, tool, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
-import { createAgentLogger } from '@asafhaim/agentlog-vercel-ai';
+import { createAgentLogger } from '@asafhm/agentlog-vercel-ai';
 
 const { telemetry, runId, onError } = createAgentLogger({ agentName: 'support-agent' });
 
@@ -86,6 +86,51 @@ try {
 console.log(result.text);
 // Log file: .agentlog/runs/<runId>.jsonl
 ```
+
+### streamText
+
+`onError` plugs in directly — no try/catch wrapper needed:
+
+```ts
+import { streamText, tool, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import { createAgentLogger } from '@asafhm/agentlog-vercel-ai';
+
+const { telemetry, runId, onError } = createAgentLogger({ agentName: 'stream-agent' });
+
+const result = streamText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'What is the weather in Tel Aviv?',
+  experimental_telemetry: telemetry,
+  onError,
+  tools: {
+    getWeather: tool({
+      description: 'Get weather for a city',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ city, temp: 28, condition: 'sunny' }),
+    }),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+// Log file: .agentlog/runs/<runId>.jsonl
+```
+
+---
+
+## Tail anchor
+
+When a run completes, agentlog writes a sidecar file alongside the log:
+
+```
+.agentlog/runs/<runId>.head.json  →  { runId, seq, hash, endedAt }
+```
+
+`verifyFile` checks this file if present. If the log was truncated after the run completed, verification fails with `Tail anchor mismatch`. Logs without a head file (in-progress or pre-v0.2) are verified as before — the head file is optional.
 
 ---
 
@@ -129,8 +174,9 @@ Each event is hashed with SHA-256 over its own fields plus the previous event's 
 - Each stored `hash` matches the recomputed hash
 
 The chain detects modifications, insertions, and deletion of events within the
-recorded chain. It does not detect tail truncation by itself; closing that gap
-requires a separate tail anchor or external checkpoint.
+recorded chain. Completed runs also write a `.head.json` tail anchor — if present,
+`verifyFile` will detect tail truncation. Runs without a head file (crashed or
+pre-v0.2) verify chain integrity only.
 
 Logs are stored in `.agentlog/runs/` relative to your project root. Set `AGENTLOG_DIR` to change the location.
 
