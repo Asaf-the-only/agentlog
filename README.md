@@ -19,19 +19,19 @@ Every prompt, tool call, and response is written to a local JSONL file with a SH
 ## Install
 
 ```bash
-npm install @asafhm/agentlog-core
+npm install @asafhm/agentlog-core@alpha
 ```
 
 With Vercel AI SDK:
 
 ```bash
-npm install @asafhm/agentlog-core @asafhm/agentlog-vercel-ai
+npm install @asafhm/agentlog-core@alpha @asafhm/agentlog-vercel-ai@alpha
 ```
 
 CLI (global):
 
 ```bash
-npm install -g @asafhm/agentlog
+npm install -g @asafhm/agentlog@alpha
 ```
 
 ---
