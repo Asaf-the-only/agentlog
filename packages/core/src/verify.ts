@@ -1,5 +1,6 @@
 import { createReadStream, existsSync, readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
+import { basename } from 'node:path';
 import { hashEvent, GENESIS } from './crypto.js';
 import type { AuditEvent } from './event.js';
 
@@ -13,6 +14,8 @@ export async function verifyFile(filePath: string): Promise<VerifyResult> {
   let rl: ReturnType<typeof createInterface> | undefined;
 
   try {
+    const expectedRunId = basename(filePath, '.jsonl');
+
     rl = createInterface({
       input: createReadStream(filePath),
       crlfDelay: Infinity,
@@ -39,6 +42,10 @@ export async function verifyFile(filePath: string): Promise<VerifyResult> {
         return { valid: false, eventsChecked, error: `Sequence gap at seq ${event.seq}, expected ${expectedSeq}` };
       }
 
+      if (event.runId !== expectedRunId) {
+        return { valid: false, eventsChecked, error: `Run ID mismatch at seq ${event.seq}` };
+      }
+
       if (event.prevHash !== prevHash) {
         return { valid: false, eventsChecked, error: `Hash chain broken at seq ${event.seq}` };
       }
@@ -63,11 +70,12 @@ export async function verifyFile(filePath: string): Promise<VerifyResult> {
     if (existsSync(headPath)) {
       try {
         const head = JSON.parse(readFileSync(headPath, 'utf8')) as {
+          runId?: string;
           seq: number;
           hash: string;
         };
         const lastSeq = expectedSeq - 1;
-        if (head.seq !== lastSeq || head.hash !== prevHash) {
+        if (head.runId !== expectedRunId || head.seq !== lastSeq || head.hash !== prevHash) {
           return { valid: false, eventsChecked, error: 'Tail anchor mismatch' };
         }
       } catch {

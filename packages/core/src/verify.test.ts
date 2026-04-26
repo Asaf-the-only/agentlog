@@ -40,7 +40,7 @@ function buildChain(types: AuditEventType[]): AuditEvent[] {
 function writeTmp(events: AuditEvent[]): string {
   const dir = join(tmpdir(), randomUUID());
   mkdirSync(dir);
-  const path = join(dir, 'run.jsonl');
+  const path = join(dir, `${events[0]?.runId ?? randomUUID()}.jsonl`);
   writeFileSync(path, events.map(e => JSON.stringify(e)).join('\n') + '\n');
   return path;
 }
@@ -104,6 +104,18 @@ describe('verifyFile', () => {
     const result = await verifyFile(path);
     expect(result.valid).toBe(false);
     expect(result.error).toMatch(/hash mismatch/i);
+  });
+
+  it('runId must match filename', async () => {
+    const events = buildChain(['run_start', 'prompt', 'response', 'run_end']);
+    const dir = join(tmpdir(), randomUUID());
+    mkdirSync(dir);
+    const path = join(dir, `${randomUUID()}.jsonl`);
+    writeFileSync(path, events.map(e => JSON.stringify(e)).join('\n') + '\n');
+
+    const result = await verifyFile(path);
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/run id mismatch/i);
   });
 
   it('valid chain with matching head file passes', async () => {
