@@ -1,4 +1,4 @@
-import { createRun } from '@agentlog/core';
+import { createRun } from '@asafhaim/agentlog-core';
 import type { TelemetryIntegration } from 'ai';
 
 export function createAgentLogger(config?: {

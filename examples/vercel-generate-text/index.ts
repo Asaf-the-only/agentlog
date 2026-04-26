@@ -1,7 +1,7 @@
 import { generateText, tool, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
-import { createAgentLogger } from '@agentlog/vercel-ai';
+import { createAgentLogger } from '@asafhaim/agentlog-vercel-ai';
 
 const { telemetry, runId, onError } = createAgentLogger({
   agentName: 'support-agent',

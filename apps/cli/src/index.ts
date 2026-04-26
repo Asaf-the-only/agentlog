@@ -1,8 +1,8 @@
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { resolve } from 'node:path';
-import { verifyFile } from '@agentlog/core';
-import type { AuditEvent } from '@agentlog/core';
+import { verifyFile } from '@asafhaim/agentlog-core';
+import type { AuditEvent } from '@asafhaim/agentlog-core';
 
 const [, , command, filePath] = process.argv;
 

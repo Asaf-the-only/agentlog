@@ -1,5 +1,5 @@
 {
-  "name": "@agentlog/core",
+  "name": "@asafhaim/agentlog-core",
   "version": "0.1.1",
   "description": "Tamper-evident audit logging for AI agents — hash-chained JSONL run files",
   "type": "module",

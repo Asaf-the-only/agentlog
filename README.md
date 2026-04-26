@@ -10,8 +10,8 @@ Every prompt, tool call, and response is written to a local JSONL file with a SH
 
 | Package | Description |
 |---|---|
-| `@agentlog/core` | Core logger — create runs, append events, verify files |
-| `@agentlog/vercel-ai` | Vercel AI SDK adapter for `generateText` |
+| `@asafhaim/agentlog-core` | Core logger — create runs, append events, verify files |
+| `@asafhaim/agentlog-vercel-ai` | Vercel AI SDK adapter for `generateText` |
 | `agentlog` | CLI — `verify` and `view` commands |
 
 ---
@@ -19,13 +19,13 @@ Every prompt, tool call, and response is written to a local JSONL file with a SH
 ## Install
 
 ```bash
-npm install @agentlog/core
+npm install @asafhaim/agentlog-core
 ```
 
 With Vercel AI SDK:
 
 ```bash
-npm install @agentlog/core @agentlog/vercel-ai
+npm install @asafhaim/agentlog-core @asafhaim/agentlog-vercel-ai
 ```
 
 CLI (global):
@@ -41,7 +41,7 @@ npm install -g agentlog
 ### Core
 
 ```ts
-import { createRun, verifyFile } from '@agentlog/core';
+import { createRun, verifyFile } from '@asafhaim/agentlog-core';
 
 const run = createRun({ agentName: 'my-agent' });
 
@@ -59,7 +59,7 @@ console.log(result); // { valid: true, eventsChecked: 5 }
 import { generateText, tool, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
-import { createAgentLogger } from '@agentlog/vercel-ai';
+import { createAgentLogger } from '@asafhaim/agentlog-vercel-ai';
 
 const { telemetry, runId, onError } = createAgentLogger({ agentName: 'support-agent' });
 
