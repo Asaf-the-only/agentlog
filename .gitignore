@@ -1,0 +1,14 @@
+# tooling
+.claude/
+
+# build output
+dist/
+
+# deps
+node_modules/
+
+# runtime
+.agentlog/
+
+# OS
+.DS_Store

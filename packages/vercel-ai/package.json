@@ -1,0 +1,32 @@
+{
+  "name": "@agentlog/vercel-ai",
+  "version": "0.1.1",
+  "description": "Vercel AI SDK adapter for agentlog — automatic audit logging for generateText",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "keywords": ["ai", "agent", "audit", "logging", "vercel-ai", "ai-sdk", "tamper-evident"],
+  "author": "Asaf Haim",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/asafhaim/agentlog"
+  },
+  "dependencies": {
+    "@agentlog/core": "workspace:*",
+    "ai": "^6.0.168"
+  }
+}

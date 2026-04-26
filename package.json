@@ -1,0 +1,13 @@
+{
+  "name": "agentlog",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1"
+  }
+}

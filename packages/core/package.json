@@ -1,0 +1,40 @@
+{
+  "name": "@agentlog/core",
+  "version": "0.1.1",
+  "description": "Tamper-evident audit logging for AI agents — hash-chained JSONL run files",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "audit",
+    "logging",
+    "tamper-evident",
+    "hash-chain"
+  ],
+  "author": "Asaf Haim",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/asafhaim/agentlog"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "vitest": "^4.1.5"
+  }
+}
