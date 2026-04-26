@@ -12,7 +12,7 @@ Every prompt, tool call, and response is written to a local JSONL file with a SH
 |---|---|
 | `@asafhm/agentlog-core` | Core logger — create runs, append events, verify files |
 | `@asafhm/agentlog-vercel-ai` | Vercel AI SDK adapter for `generateText` |
-| `agentlog` | CLI — `verify` and `view` commands |
+| `@asafhm/agentlog` | CLI — `verify`, `view`, and `studio` commands |
 
 ---
 
@@ -31,7 +31,7 @@ npm install @asafhm/agentlog-core @asafhm/agentlog-vercel-ai
 CLI (global):
 
 ```bash
-npm install -g agentlog
+npm install -g @asafhm/agentlog
 ```
 
 ---

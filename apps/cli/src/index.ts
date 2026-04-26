@@ -230,6 +230,13 @@ function studioHtml(): string {
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .run-name {
+      font-size: 14px;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .badge {
       display: inline-flex;
       align-items: center;
@@ -380,8 +387,11 @@ function studioHtml(): string {
       listEl.innerHTML = data.runs.map(run => {
         const active = run.runId === selectedRunId ? ' active' : '';
         const status = run.status ? 'status: ' + esc(run.status) : (run.errorCode ? esc(run.errorCode) : 'no run_end');
+        const title = run.agentName ? esc(run.agentName) : esc(run.runId);
+        const idLine = run.agentName ? '<span class="run-id">' + esc(run.runId) + '</span>' : '';
         return '<button class="run-row' + active + '" type="button" data-run-id="' + esc(run.runId) + '">' +
-          '<div class="run-title">' + badge(run.valid) + '<span class="run-id">' + esc(run.runId) + '</span></div>' +
+          '<div class="run-title">' + badge(run.valid) + '<span class="run-name">' + title + '</span></div>' +
+          idLine +
           '<div class="run-sub"><span>' + esc(run.eventCount) + ' events</span><span>' + status + '</span><span>' + esc(fmt(run.startedAt)) + '</span></div>' +
         '</button>';
       }).join('');
@@ -400,8 +410,9 @@ function studioHtml(): string {
       const events = data.events ?? [];
       detailEl.innerHTML =
         '<div class="detail-head">' +
-          '<div class="detail-title"><h2>' + esc(run.runId) + '</h2>' + badge(run.valid) + '</div>' +
+          '<div class="detail-title"><h2>' + esc(run.agentName || run.runId) + '</h2>' + badge(run.valid) + '</div>' +
           '<div class="detail-meta">' +
+            (run.agentName ? '<span>' + esc(run.runId) + '</span>' : '') +
             '<span>' + esc(events.length) + ' events</span>' +
             '<span>' + esc(fmt(run.startedAt)) + '</span>' +
             (run.errorCode ? '<span>' + esc(run.errorCode) + '</span>' : '') +
@@ -463,6 +474,7 @@ async function startStudio(): Promise<void> {
         const code = (error as NodeJS.ErrnoException).code;
         if (code === 'EADDRINUSE' && port < 3010) {
           port++;
+          server.removeAllListeners('listening');
           tryListen();
           return;
         }
