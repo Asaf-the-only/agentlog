@@ -18,7 +18,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/asafhaim/agentlog"
+    "url": "https://github.com/asf-hm/agentlog"
   },
   "dependencies": {
     "@asafhm/agentlog-core": "workspace:*"
