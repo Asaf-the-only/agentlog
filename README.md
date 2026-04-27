@@ -11,7 +11,7 @@ Every prompt, tool call, and response is written to a local JSONL file with a SH
 | Package | Description |
 |---|---|
 | `@asafhm/agentlog-core` | Core logger — create runs, append events, verify files |
-| `@asafhm/agentlog-vercel-ai` | Vercel AI SDK adapter for `generateText` |
+| `@asafhm/agentlog-vercel-ai` | Vercel AI SDK adapter for `generateText` and `streamText` |
 | `@asafhm/agentlog` | CLI — `verify`, `view`, and `studio` commands |
 
 ---
@@ -118,6 +118,18 @@ for await (const chunk of result.textStream) {
   process.stdout.write(chunk);
 }
 // Log file: .agentlog/runs/<runId>.jsonl
+```
+
+### Real Agent Example
+
+The support triage example is the best demo path: it makes a refund decision, calls local tools, and writes a log you can inspect.
+
+```bash
+cd examples/support-triage-agent
+pnpm start approved
+pnpm start denied
+pnpm start not_found
+pnpm start policy_error
 ```
 
 ---

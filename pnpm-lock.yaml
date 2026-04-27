@@ -22,6 +22,25 @@ importers:
         specifier: ^25.6.0
         version: 25.6.0
 
+  examples/support-triage-agent:
+    dependencies:
+      '@ai-sdk/openai':
+        specifier: ^3.0.53
+        version: 3.0.53(zod@4.3.6)
+      '@asafhm/agentlog-vercel-ai':
+        specifier: workspace:*
+        version: link:../../packages/vercel-ai
+      ai:
+        specifier: ^6.0.168
+        version: 6.0.168(zod@4.3.6)
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+
   examples/vercel-generate-text:
     dependencies:
       '@ai-sdk/openai':

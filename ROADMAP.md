@@ -43,7 +43,7 @@ The CLI package still exposes the `agentlog` binary.
 - runId/filename binding in `verifyFile`
 - structured `VerifyResult.details.code`
 - metadata-only capture by default, full capture opt-in
-- examples for generateText and streamText
+- examples for generateText, streamText, and support triage
 - CLI `verify`, `view`, and first-pass `studio`
 
 ### Current milestone
@@ -61,6 +61,7 @@ Scope:
 - shows run list, validity, event count, and failure code
 - click a run to inspect the event timeline
 - no SQLite requirement
+- support triage demo as the first product story
 
 ---
 
@@ -79,6 +80,7 @@ start agentlog studio over JSONL files
 ```
 agentlog studio over JSONL files
 generateText + streamText examples
+support triage example
 tail-anchor verification for completed runs
 structured verify errors
 ```
