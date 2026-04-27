@@ -301,6 +301,9 @@ function studioHtml(): string {
       border-radius: 8px;
       overflow: hidden;
     }
+    .event.is-error {
+      border-color: #f5c2c2;
+    }
     .event-head {
       min-height: 42px;
       display: flex;
@@ -310,15 +313,28 @@ function studioHtml(): string {
       padding: 10px 12px;
       border-bottom: 1px solid var(--line);
       background: #fbfcfe;
+      cursor: pointer;
+      user-select: none;
+    }
+    .event.is-error .event-head {
+      background: #fff5f5;
+      border-bottom-color: #f5c2c2;
     }
     .event-type {
       font-weight: 700;
       font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     .event-ts {
       color: var(--muted);
       font-size: 12px;
       white-space: nowrap;
+    }
+    .event-tool {
+      color: var(--accent);
+      font-weight: 600;
     }
     pre {
       margin: 0;
@@ -328,6 +344,7 @@ function studioHtml(): string {
       line-height: 1.5;
       background: var(--panel);
     }
+    .event-body[hidden] { display: none; }
     @media (max-width: 780px) {
       main { grid-template-columns: 1fr; }
       aside { border-right: 0; border-bottom: 1px solid var(--line); }
@@ -375,6 +392,12 @@ function studioHtml(): string {
       return '<span class="badge ' + (valid ? 'good' : 'bad') + '">' + (valid ? 'valid' : 'invalid') + '</span>';
     }
 
+    function statusBadge(status) {
+      if (!status) return '';
+      const good = status === 'success';
+      return '<span class="badge ' + (good ? 'good' : 'bad') + '">' + esc(status) + '</span>';
+    }
+
     async function loadRuns() {
       const res = await fetch('/api/runs');
       const data = await res.json();
@@ -386,13 +409,13 @@ function studioHtml(): string {
       }
       listEl.innerHTML = data.runs.map(run => {
         const active = run.runId === selectedRunId ? ' active' : '';
-        const status = run.status ? 'status: ' + esc(run.status) : (run.errorCode ? esc(run.errorCode) : 'no run_end');
         const title = run.agentName ? esc(run.agentName) : esc(run.runId);
         const idLine = run.agentName ? '<span class="run-id">' + esc(run.runId) + '</span>' : '';
+        const statusEl = run.status ? statusBadge(run.status) : (run.errorCode ? '<span class="badge bad">' + esc(run.errorCode) + '</span>' : '<span style="color:var(--muted);font-size:12px">no run_end</span>');
         return '<button class="run-row' + active + '" type="button" data-run-id="' + esc(run.runId) + '">' +
-          '<div class="run-title">' + badge(run.valid) + '<span class="run-name">' + title + '</span></div>' +
+          '<div class="run-title">' + badge(run.valid) + '<span class="run-name">' + title + '</span>' + statusEl + '</div>' +
           idLine +
-          '<div class="run-sub"><span>' + esc(run.eventCount) + ' events</span><span>' + status + '</span><span>' + esc(fmt(run.startedAt)) + '</span></div>' +
+          '<div class="run-sub"><span>' + esc(run.eventCount) + ' events</span><span>' + esc(fmt(run.startedAt)) + '</span></div>' +
         '</button>';
       }).join('');
       listEl.querySelectorAll('[data-run-id]').forEach(button => {
@@ -419,18 +442,33 @@ function studioHtml(): string {
             (verify.error ? '<span>' + esc(verify.error) + '</span>' : '') +
           '</div>' +
         '</div>' +
-        '<div class="event-list">' + events.map(event => (
-          '<article class="event">' +
-            '<div class="event-head">' +
-              '<span class="event-type">#' + esc(event.seq) + ' ' + esc(event.type) + '</span>' +
+        '<div class="event-list">' + events.map((event, idx) => {
+          const isError = event.type === 'error';
+          const toolName = (event.type === 'tool_call' || event.type === 'tool_result') && event.payload && event.payload.tool
+            ? String(event.payload.tool) : '';
+          const typeLabel = isError
+            ? '❌ ' + esc(event.type)
+            : esc(event.type);
+          const toolSuffix = toolName ? ' <span class="event-tool">→ ' + esc(toolName) + '</span>' : '';
+          const bodyId = 'evt-body-' + idx;
+          return '<article class="event' + (isError ? ' is-error' : '') + '">' +
+            '<div class="event-head" onclick="toggleEvt(\'' + bodyId + '\')">' +
+              '<span class="event-type"><span class="event-seq">#' + esc(event.seq) + '</span> ' + typeLabel + toolSuffix + '</span>' +
               '<span class="event-ts">' + esc(fmt(event.ts)) + '</span>' +
             '</div>' +
-            '<pre>' + esc(JSON.stringify(event.payload, null, 2)) + '</pre>' +
-          '</article>'
-        )).join('') + '</div>';
+            '<div class="event-body" id="' + bodyId + '">' +
+              '<pre>' + esc(JSON.stringify(event.payload, null, 2)) + '</pre>' +
+            '</div>' +
+          '</article>';
+        }).join('') + '</div>';
       document.querySelectorAll('.run-row').forEach(row => {
         row.classList.toggle('active', row.dataset.runId === selectedRunId);
       });
+    }
+
+    function toggleEvt(id) {
+      const el = document.getElementById(id);
+      if (el) el.hidden = !el.hidden;
     }
 
     refreshEl.addEventListener('click', loadRuns);

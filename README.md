@@ -6,6 +6,28 @@ Every prompt, tool call, and response is written to a local JSONL file with a SH
 
 ---
 
+## Demo — support triage agent
+
+A support triage agent runs, calls tools, and writes a log. You can inspect it locally:
+
+```bash
+agentlog studio
+```
+
+**Run list** — every run with its verify status at a glance:
+
+![agentlog studio run list](docs/studio-runs.png)
+
+The `invalid` run was tampered with — one event was deleted. agentlog caught it: `SEQ_GAP — Sequence gap at seq 6, expected 4`.
+
+**Event timeline** — what the agent actually did, step by step:
+
+![agentlog studio timeline](docs/studio-timeline.png)
+
+Tool calls surface the tool name inline (`tool_call → lookupOrder`). No digging through raw JSON to follow the agent's reasoning.
+
+---
+
 ## Packages
 
 | Package | Description |
