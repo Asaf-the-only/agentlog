@@ -120,16 +120,42 @@ for await (const chunk of result.textStream) {
 // Log file: .agentlog/runs/<runId>.jsonl
 ```
 
-### Real Agent Example
+## See What Your Agent Did
 
-The support triage example is the best demo path: it makes a refund decision, calls local tools, and writes a log you can inspect.
+The support triage demo shows agentlog's core workflow:
+
+- run a Vercel AI SDK agent
+- inspect what tools were called
+- understand the final decision
+- verify the log was not modified
+
+Example: a customer asks for a refund. The agent looks up the order, fetches the refund policy, writes a support note, and returns a decision such as `refund_approved`, `refund_denied`, or `manual_review`.
+
+The same demo also includes a policy-service failure path, so you can see where the agent recovered into manual review.
+
+### Run The Demo
 
 ```bash
 cd examples/support-triage-agent
+cp ../vercel-stream-text/.env .env # or create .env with OPENAI_API_KEY
 pnpm start approved
 pnpm start denied
 pnpm start not_found
 pnpm start policy_error
+```
+
+Verify the generated logs:
+
+```bash
+for f in .agentlog/runs/*.jsonl; do
+  node ../../apps/cli/dist/index.js verify "$f"
+done
+```
+
+Open the local studio:
+
+```bash
+node ../../apps/cli/dist/index.js studio
 ```
 
 ---
