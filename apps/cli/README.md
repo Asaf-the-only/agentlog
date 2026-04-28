@@ -1,8 +1,10 @@
 # agentlog
 
-A local flight recorder for AI agents.
+Local tamper-evident audit logs for AI agent runs.
 
-agentlog records prompts, tool calls, responses, and errors as tamper-evident JSONL files on disk. Use it to debug what happened, inspect runs locally, and verify that a run log was not edited after the fact.
+agentlog records prompts, tool calls, responses, and errors as hash-chained JSONL files on disk. Use it to debug what happened, inspect runs locally, and verify that a log was not edited after the fact.
+
+Not a transcript viewer. Each run is a verifiable chain — any edit or deletion breaks verification.
 
 - Local files, no cloud service
 - Hash-chained events for tamper evidence
@@ -11,6 +13,61 @@ agentlog records prompts, tool calls, responses, and errors as tamper-evident JS
 - Local Studio UI for browsing runs
 
 Runs are written to `.agentlog/runs/*.jsonl` and gitignored by default.
+
+---
+
+## 2-minute start
+
+```bash
+npm install @asafhm/agentlog-core @asafhm/agentlog-vercel-ai
+```
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { createAgentLogger } from '@asafhm/agentlog-vercel-ai';
+
+const { telemetry, onError } = createAgentLogger({ agentName: 'my-agent' });
+
+try {
+  const { text } = await generateText({
+    model: openai('gpt-4o-mini'),
+    prompt: 'Explain SQL joins',
+    experimental_telemetry: telemetry,
+  });
+  console.log(text);
+} catch (err) {
+  onError(err);
+  throw err;
+}
+// → .agentlog/runs/<runId>.jsonl
+```
+
+Inspect the run:
+
+```bash
+npx agentlog view .agentlog/runs/<runId>.jsonl
+```
+
+```
+[0] 2026-04-28 12:00:00Z  run_start
+[1] 2026-04-28 12:00:01Z  prompt
+      model: {"provider":"openai","modelId":"gpt-4o-mini"}
+[2] 2026-04-28 12:00:03Z  response  (1821ms)
+      usage: {"inputTokens":89,"outputTokens":18}
+[3] 2026-04-28 12:00:03Z  run_end
+      status: "success"
+```
+
+Verify it wasn't edited:
+
+```bash
+npx agentlog verify .agentlog/runs/<runId>.jsonl
+```
+
+```
+✓ Valid — 4 events verified
+```
 
 ---
 
@@ -30,15 +87,6 @@ Runs are written to `.agentlog/runs/*.jsonl` and gitignored by default.
 | `@asafhm/agentlog-core` | Core logger — create runs, append events, verify files |
 | `@asafhm/agentlog-vercel-ai` | Vercel AI SDK adapter for `generateText` and `streamText` |
 | `@asafhm/agentlog` | CLI — `verify`, `view`, and `studio` commands |
-
----
-
-## Install
-
-```bash
-npm install @asafhm/agentlog-core@alpha @asafhm/agentlog-vercel-ai@alpha
-npm install -g @asafhm/agentlog@alpha  # CLI
-```
 
 ---
 
@@ -64,7 +112,6 @@ try {
   onError(err);
   throw err;
 }
-// → .agentlog/runs/<runId>.jsonl
 ```
 
 ### streamText
@@ -88,7 +135,6 @@ const result = streamText({
 for await (const chunk of result.textStream) {
   process.stdout.write(chunk);
 }
-// → .agentlog/runs/<runId>.jsonl
 ```
 
 By default, agentlog records metadata only: timestamps, event types, durations, and tool names. No prompt content is captured unless you opt in — see [Capture modes](#capture-modes).
@@ -113,43 +159,12 @@ console.log(result); // { valid: true, eventsChecked: 4 }
 
 ---
 
-## Inspect a run
+## Inspect and verify
 
 ```bash
-agentlog view .agentlog/runs/<runId>.jsonl
-```
-
-```
-[0] 2026-04-28 12:00:00Z  run_start
-[1] 2026-04-28 12:00:01Z  prompt
-      model: {"provider":"openai","modelId":"gpt-4o-mini"}
-[2] 2026-04-28 12:00:02Z  tool_call
-      tool: "lookupOrder"
-[3] 2026-04-28 12:00:02Z  tool_result
-      tool: "lookupOrder"
-      success: true
-[4] 2026-04-28 12:00:03Z  response  (1821ms)
-      usage: {"inputTokens":89,"outputTokens":18}
-[5] 2026-04-28 12:00:03Z  run_end
-      status: "success"
-```
-
----
-
-## Verify integrity
-
-```bash
-agentlog verify .agentlog/runs/<runId>.jsonl
-```
-
-```
-✓ Valid — 6 events verified
-```
-
-Tamper with any line and re-run:
-
-```
-✗ Invalid — Hash mismatch at seq 2
+npx agentlog view .agentlog/runs/<runId>.jsonl    # human-readable timeline
+npx agentlog verify .agentlog/runs/<runId>.jsonl  # exits 1 if tampered
+npx agentlog studio                               # browser UI at http://127.0.0.1:3001
 ```
 
 ---
@@ -157,7 +172,7 @@ Tamper with any line and re-run:
 ## Studio
 
 ```bash
-agentlog studio
+npx agentlog studio
 ```
 
 Opens `http://127.0.0.1:3001` — a local UI showing all runs, event timelines, and verification status.
@@ -213,14 +228,16 @@ result.details?.lastValidSeq  // last sequence number known good
 
 agentlog is not a compliance product by itself, but it is designed for teams that need trustworthy records of AI system behavior. Its append-only, hash-chained logs can support audit, debugging, incident review, and regulated AI workflows.
 
+Useful for auditability and Article 12-style automatic logging requirements.
+
 ---
 
 ## CLI reference
 
 ```bash
-agentlog verify <run.jsonl>   # verify integrity — exits 1 if invalid
-agentlog view <run.jsonl>     # human-readable event timeline
-agentlog studio               # local browser UI at http://127.0.0.1:3001
+npx agentlog verify <run.jsonl>   # verify integrity — exits 1 if invalid
+npx agentlog view <run.jsonl>     # human-readable event timeline
+npx agentlog studio               # local browser UI at http://127.0.0.1:3001
 ```
 
 `AGENTLOG_DIR` — storage location (default: `.agentlog`)
