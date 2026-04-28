@@ -1,5 +1,9 @@
 # tooling
 .claude/
+package-lock.json
+
+# working docs
+v.*.md
 
 # build output
 dist/
