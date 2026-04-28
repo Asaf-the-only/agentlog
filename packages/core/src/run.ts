@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { appendFileSync, mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AuditEvent, AuditEventType } from './event.js';
 import { hashEvent, GENESIS } from './crypto.js';
@@ -8,15 +8,27 @@ function getRunsDir(): string {
   return join(process.env.AGENTLOG_DIR ?? '.agentlog', 'runs');
 }
 
+function findProjectRoot(): string {
+  let dir = process.cwd();
+  for (let i = 0; i < 5; i++) {
+    if (existsSync(join(dir, '.git'))) return dir;
+    const parent = join(dir, '..');
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return process.cwd();
+}
+
 function ensureGitignore(): void {
-  const path = '.gitignore';
+  const root = findProjectRoot();
+  const path = join(root, '.gitignore');
   const entry = '.agentlog/';
   if (!existsSync(path)) {
     writeFileSync(path, `${entry}\n`, 'utf8');
     return;
   }
   const contents = readFileSync(path, 'utf8');
-  if (!contents.includes(entry)) {
+  if (!/^\.agentlog\/$/m.test(contents)) {
     appendFileSync(path, `\n${entry}\n`, 'utf8');
   }
 }
@@ -32,7 +44,7 @@ export function createRun(options?: {
   captureMode?: 'metadata' | 'full';
   gitignore?: boolean;
 }): Run {
-  if (options?.gitignore) {
+  if (options?.gitignore !== false) {
     ensureGitignore();
   }
 
@@ -41,6 +53,7 @@ export function createRun(options?: {
   mkdirSync(runsDir, { recursive: true });
   const filePath = join(runsDir, `${runId}.jsonl`);
 
+  const schemaVersion = '2' as const;
   let seq = 0;
   let prevHash = GENESIS;
   const startedAt = Date.now();
@@ -59,7 +72,7 @@ export function createRun(options?: {
       prevHash,
     };
 
-    const hash = hashEvent(partial);
+    const hash = hashEvent(partial, schemaVersion);
     const event: AuditEvent = { ...partial, hash };
 
     appendFileSync(filePath, JSON.stringify(event) + '\n', 'utf8');
@@ -71,7 +84,7 @@ export function createRun(options?: {
   }
 
   writeEvent('run_start', {
-    schemaVersion: '1',
+    schemaVersion,
     framework: 'agentlog',
     captureMode: options?.captureMode ?? 'metadata',
     startedAt,
@@ -81,6 +94,9 @@ export function createRun(options?: {
     runId,
 
     append(type, payload, durationMs) {
+      if (endEvent && type !== 'late_error') {
+        throw new Error(`Cannot append event of type "${type}" after run has ended`);
+      }
       return writeEvent(type, payload, durationMs);
     },
 
@@ -92,11 +108,14 @@ export function createRun(options?: {
         totalEvents: seq,
         durationMs: Date.now() - startedAt,
       });
+      const tmpPath = filePath.replace(/\.jsonl$/, '.head.json.tmp');
+      const headPath = filePath.replace(/\.jsonl$/, '.head.json');
       writeFileSync(
-        filePath.replace(/\.jsonl$/, '.head.json'),
+        tmpPath,
         JSON.stringify({ runId, seq: endEvent.seq, hash: endEvent.hash, endedAt: Date.now() }),
         'utf8'
       );
+      renameSync(tmpPath, headPath);
       return endEvent;
     },
   };

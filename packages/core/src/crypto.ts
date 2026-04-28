@@ -13,14 +13,27 @@ function sortKeys(value: unknown): unknown {
   return value;
 }
 
-export function hashEvent(event: Omit<AuditEvent, 'hash'>): string {
-  const canonical = event.prevHash + JSON.stringify(sortKeys({
-    id: event.id,
-    runId: event.runId,
-    seq: event.seq,
-    type: event.type,
-    ts: event.ts,
-    payload: event.payload,
-  }));
+export function hashEvent(event: Omit<AuditEvent, 'hash'>, schemaVersion: '1' | '2' = '2'): string {
+  const canonical = event.prevHash + JSON.stringify(sortKeys(
+    schemaVersion === '2'
+      ? {
+          id: event.id,
+          runId: event.runId,
+          agentName: event.agentName,
+          seq: event.seq,
+          type: event.type,
+          ts: event.ts,
+          durationMs: event.durationMs,
+          payload: event.payload,
+        }
+      : {
+          id: event.id,
+          runId: event.runId,
+          seq: event.seq,
+          type: event.type,
+          ts: event.ts,
+          payload: event.payload,
+        }
+  ));
   return createHash('sha256').update(canonical).digest('hex');
 }

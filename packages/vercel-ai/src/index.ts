@@ -30,7 +30,11 @@ export function createAgentLogger(config?: {
         tool: event.toolCall.toolName,
         success: event.success,
         ...(full && event.success && { output: event.output }),
-        ...(full && !event.success && { error: String(event.error) }),
+        ...(full && !event.success && {
+          error: event.error instanceof Error
+            ? { message: event.error.message, name: event.error.name, stack: event.error.stack }
+            : String(event.error),
+        }),
       });
     },
 
@@ -56,7 +60,11 @@ export function createAgentLogger(config?: {
         'error' in errorOrEvent
           ? (errorOrEvent as { error: unknown }).error
           : errorOrEvent;
-      run.end('error', String(error));
+      const serializedError = error instanceof Error
+        ? { message: error.message, name: error.name, stack: error.stack }
+        : String(error);
+      run.append('late_error', { error: serializedError });
+      run.end('error', error instanceof Error ? error.message : String(error));
     },
   };
 }

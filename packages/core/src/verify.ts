@@ -13,6 +13,7 @@ export type VerifyErrorCode =
   | 'HASH_MISMATCH'
   | 'TAIL_ANCHOR_MISMATCH'
   | 'TAIL_ANCHOR_UNREADABLE'
+  | 'UNSUPPORTED_SCHEMA_VERSION'
   | 'EMPTY_FILE'
   | 'FILE_ERROR';
 
@@ -65,6 +66,7 @@ export async function verifyFile(filePath: string): Promise<VerifyResult> {
     let prevHash = GENESIS;
     let prevTs: number | undefined;
     let lineNo = 0;
+    let schemaVersion: '1' | '2' | undefined;
 
     for await (const line of rl) {
       lineNo++;
@@ -75,6 +77,17 @@ export async function verifyFile(filePath: string): Promise<VerifyResult> {
         event = JSON.parse(line);
       } catch {
         return fail('BAD_JSON', `Invalid JSON at line ${lineNo}`, { lineNo });
+      }
+
+      if (schemaVersion === undefined) {
+        const raw = event.payload?.schemaVersion;
+        if (raw === undefined || raw === null) {
+          schemaVersion = '1';
+        } else if (raw === '1' || raw === '2') {
+          schemaVersion = raw;
+        } else {
+          return fail('UNSUPPORTED_SCHEMA_VERSION', `Unsupported schemaVersion: ${String(raw)}`, { seq: event.seq });
+        }
       }
 
       if (event.seq !== expectedSeq) {
@@ -94,7 +107,7 @@ export async function verifyFile(filePath: string): Promise<VerifyResult> {
       }
 
       const { hash, ...rest } = event;
-      const recomputed = hashEvent(rest);
+      const recomputed = hashEvent(rest, schemaVersion);
       if (recomputed !== hash) {
         return fail('HASH_MISMATCH', `Hash mismatch at seq ${event.seq}`, { seq: event.seq });
       }

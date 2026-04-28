@@ -6,6 +6,7 @@ export type AuditEventType =
   | 'run_start'
   | 'run_end'
   | 'error'
+  | 'late_error'
   | 'redacted';
 
 export interface AuditEvent {

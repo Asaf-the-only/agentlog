@@ -223,6 +223,96 @@ describe('verifyFile', () => {
     expect(result.details?.lastValidSeq).toBe(3);
   });
 
+  describe('schema versioning', () => {
+    function buildV2Chain(types: AuditEventType[]): AuditEvent[] {
+      const runId = randomUUID();
+      let prevHash = GENESIS;
+      return types.map((type, seq) => {
+        const partial: Omit<AuditEvent, 'hash'> = {
+          id: randomUUID(),
+          runId,
+          agentName: 'test-agent',
+          type,
+          ts: 1_000_000_000_000 + seq * 100,
+          durationMs: seq * 10,
+          payload: seq === 0 ? { schemaVersion: '2', framework: 'agentlog' } : {},
+          seq,
+          prevHash,
+        };
+        const event = { ...partial, hash: hashEvent(partial, '2') };
+        prevHash = event.hash;
+        return event;
+      });
+    }
+
+    function buildV1Chain(types: AuditEventType[]): AuditEvent[] {
+      const runId = randomUUID();
+      let prevHash = GENESIS;
+      return types.map((type, seq) => {
+        const partial: Omit<AuditEvent, 'hash'> = {
+          id: randomUUID(),
+          runId,
+          agentName: 'test-agent',
+          type,
+          ts: 1_000_000_000_000 + seq * 100,
+          durationMs: seq * 10,
+          payload: {},
+          seq,
+          prevHash,
+        };
+        const event = { ...partial, hash: hashEvent(partial, '1') };
+        prevHash = event.hash;
+        return event;
+      });
+    }
+
+    it('schema v2 run with agentName and durationMs verifies correctly', async () => {
+      const path = writeTmp(buildV2Chain(['run_start', 'prompt', 'run_end']));
+      const result = await verifyFile(path);
+      expect(result.valid).toBe(true);
+      expect(result.eventsChecked).toBe(3);
+    });
+
+    it('schema v2: tampering agentName breaks verification', async () => {
+      const path = writeTmp(buildV2Chain(['run_start', 'prompt', 'run_end']));
+      const lines = readFileSync(path, 'utf8').trim().split('\n');
+      const tampered = JSON.parse(lines[1]) as AuditEvent;
+      tampered.agentName = 'evil-agent';
+      lines[1] = JSON.stringify(tampered);
+      writeFileSync(path, lines.join('\n') + '\n');
+
+      const result = await verifyFile(path);
+      expect(result.valid).toBe(false);
+      expect(result.details?.code).toBe('HASH_MISMATCH');
+      expect(result.details?.seq).toBe(1);
+    });
+
+    it('schema v1 legacy run (no schemaVersion in payload) verifies correctly', async () => {
+      const path = writeTmp(buildV1Chain(['run_start', 'prompt', 'run_end']));
+      const result = await verifyFile(path);
+      expect(result.valid).toBe(true);
+      expect(result.eventsChecked).toBe(3);
+    });
+
+    it('unknown schemaVersion reports UNSUPPORTED_SCHEMA_VERSION', async () => {
+      const runId = randomUUID();
+      const partial: Omit<AuditEvent, 'hash'> = {
+        id: randomUUID(),
+        runId,
+        type: 'run_start',
+        ts: 1_000_000_000_000,
+        payload: { schemaVersion: '99' },
+        seq: 0,
+        prevHash: GENESIS,
+      };
+      const event = { ...partial, hash: hashEvent(partial, '1') };
+      const path = writeTmp([event]);
+      const result = await verifyFile(path);
+      expect(result.valid).toBe(false);
+      expect(result.details?.code).toBe('UNSUPPORTED_SCHEMA_VERSION');
+    });
+  });
+
   it('run.end() writes head file with correct seq and hash', async () => {
     const dir = join(tmpdir(), randomUUID());
     mkdirSync(dir, { recursive: true });

@@ -18,10 +18,16 @@ function getRunsDir(): string {
 
 async function readEvents(path: string): Promise<AuditEvent[]> {
   const text = await readFile(path, 'utf8');
-  return text
-    .split('\n')
-    .filter(line => line.trim())
-    .map(line => JSON.parse(line) as AuditEvent);
+  const events: AuditEvent[] = [];
+  for (const line of text.split('\n')) {
+    if (!line.trim()) continue;
+    try {
+      events.push(JSON.parse(line) as AuditEvent);
+    } catch {
+      // skip malformed lines
+    }
+  }
+  return events;
 }
 
 function formatTs(ts: number): string {
@@ -483,9 +489,26 @@ function studioHtml(): string {
 
 async function startStudio(): Promise<void> {
   let port = Number(process.env.AGENTLOG_STUDIO_PORT ?? 3001);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    console.error(`Invalid AGENTLOG_STUDIO_PORT: ${process.env.AGENTLOG_STUDIO_PORT}`);
+    process.exit(1);
+  }
+  const initialPort = port;
 
   const server = createServer((req, res) => {
     void (async () => {
+      const origin = req.headers['origin'];
+      if (origin !== undefined) {
+        const allowed = [`http://127.0.0.1:${port}`, `http://localhost:${port}`];
+        if (!allowed.includes(origin)) {
+          res.writeHead(403, { 'content-type': 'text/plain' });
+          res.end('Forbidden');
+          return;
+        }
+      }
+
+      res.setHeader('Access-Control-Allow-Origin', `http://127.0.0.1:${port}`);
+
       const url = new URL(req.url ?? '/', 'http://localhost');
       if (url.pathname === '/') {
         sendHtml(res, studioHtml());
@@ -510,7 +533,7 @@ async function startStudio(): Promise<void> {
     const tryListen = () => {
       server.once('error', error => {
         const code = (error as NodeJS.ErrnoException).code;
-        if (code === 'EADDRINUSE' && port < 3010) {
+        if (code === 'EADDRINUSE' && port < Math.min(initialPort + 10, 65535)) {
           port++;
           server.removeAllListeners('listening');
           tryListen();
@@ -556,7 +579,13 @@ if (command === 'studio') {
 
     for await (const line of rl) {
       if (!line.trim()) continue;
-      const event: AuditEvent = JSON.parse(line);
+      let event: AuditEvent;
+      try {
+        event = JSON.parse(line) as AuditEvent;
+      } catch {
+        process.stderr.write('warning: skipping malformed line\n');
+        continue;
+      }
       const dur = event.durationMs != null ? ` (${event.durationMs}ms)` : '';
       console.log(`[${event.seq}] ${formatTs(event.ts)}  ${event.type}${dur}`);
       if (Object.keys(event.payload).length) {
