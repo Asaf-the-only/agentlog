@@ -1,6 +1,6 @@
 # agentlog
 
-Local-first audit logs for AI agents.
+A local flight recorder for AI agents.
 
 agentlog records prompts, tool calls, responses, and errors as tamper-evident JSONL files on disk. Use it to debug what happened, inspect runs locally, and verify that a run log was not edited after the fact.
 
@@ -11,6 +11,15 @@ agentlog records prompts, tool calls, responses, and errors as tamper-evident JS
 - Local Studio UI for browsing runs
 
 Runs are written to `.agentlog/runs/*.jsonl` and gitignored by default.
+
+---
+
+## Why not just logs?
+
+- Console logs are unstructured and hard to replay
+- Observability tools usually require an external service
+- Normal log files can be silently edited after the fact
+- agentlog writes one local, hash-chained timeline per agent run — readable by humans, verifiable by machines
 
 ---
 

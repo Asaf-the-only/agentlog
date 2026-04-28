@@ -1,6 +1,6 @@
 {
   "name": "@asafhm/agentlog",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "CLI for agentlog — verify and view tamper-evident AI agent run logs",
   "type": "module",
   "files": [
